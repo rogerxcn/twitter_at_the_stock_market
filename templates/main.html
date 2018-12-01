@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.3.1.js" integrity="sha256-2Kok7MbOyxpgUVvAk/HJ2jigOSYS2auK4Pfzbm7uH60=" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/node-forge@0.7.0/dist/forge.min.js"></script>
+    <script src="https://www.kryogenix.org/code/browser/sorttable/sorttable.js"></script>
+
+    <title>Tweet @ The Stock Market</title>
+  </head>
+
+
+  <body>
+    <div>
+      <h2 align="center">Tweet @ The Stock Market</h2>
+
+      <table align="center" class="table table-striped sortable table-bordered" id="table">
+        <tr>
+          <td><strong>Company</strong></td>
+          <td><strong>Sentiment Score</strong></td>
+          <td><strong>Current Price</strong></td>
+          <td><strong>5-Day Change Percent</strong></td>
+        </tr>
+
+        <tbody>
+          {% for data in list_of_data %}
+          <tr>
+            <td>{{data.name}}</td>
+            <td><font {% if data.senti > 0 %}color="green"{% endif %}{% if data.senti < 0 %}color="red"{% endif %}>{{data.senti}}</font></td>
+            <td>{{data.cprice}}</td>
+            <td><font {% if data.fdprice > 0 %}color="green"{% endif %}{% if data.fdprice < 0 %}color="red"{% endif %}>{{data.fdprice}}</font></td>
+          </tr>
+          {% endfor %}
+      </tbody>
+
+      </table>
+
+      <h2 align="center">Sentiment Trend By Range</h2>
+
+      Company:
+      <select class="form-control" name="select_company" id="select_company">
+
+        {% for data in list_of_data %}
+        <option value="{{data.name}}">{{data.name}}</option>
+        {% endfor %}
+
+      </select>
+
+      Time range:
+      <select class="form-control" name="select_time" id="select_time">
+
+        <option value="1h">Last 1 hour</option>
+        <option value="2h">Last 2 hours</option>
+        <option value="6h">Last 6 hours</option>
+        <option value="12h">Last 12 hours</option>
+        <option value="24h">Last 24 hours</option>
+        <option value="3d">Last 3 days</option>
+        <option value="7d">Last 7 days</option>
+
+      </select>
+
+      Graph type:
+      <select class="form-control" name="select_gtype" id="select_gtype">
+
+        <option value="line">line</option>
+        <option value="spline">spline</option>
+        <option value="column">column</option>
+
+      </select><br>
+
+      <button type="button"class="btn btn-primary" name="button_apply" id="button_apply">Apply</button> <br>
+
+      <div id="chartContainer" style="height: 300px; width: 100%;"></div>
+
+      <span id="span_1"></span>
+    </div>
+
+
+    <!-- Optional JavaScript -->
+    <script>
+      $("#button_apply").click(function(){
+        var range = $("#select_time").val();
+        var company = $("#select_company").val();
+        var type = $("#select_gtype").val();
+        var end = Math.round((new Date()).getTime());
+        var start = 0;
+        var values = [];
+
+        if (range === "1h") {
+          start = end - 3.6E6;
+        } else if (range === "2h") {
+          start = end - 7.2E6;
+        } else if (range === "6h") {
+          start = end - 2.16E7;
+        } else if (range === "12h") {
+          start = end - 4.32E7;
+        } else if (range === "24h") {
+          start = end - 8.64E7;
+        } else if (range === "3d") {
+          start = end - 2.592E8;
+        } else if (range === "7d") {
+          start = end - 6.048E8;
+        }
+
+        var url = "/api/get_tweet_by_time/" + company + "/" + start + "/" + end;
+
+        var post_data = {};
+
+        var arr = [];
+
+        $.post(url, post_data, function(results){
+          results = JSON.parse(results);
+
+          var i;
+          for (i = 0; i < results.length; i++) {
+            arr.push({
+              x: new Date(+results[i][0]),
+              y: +results[i][1]
+            });
+          }
+
+          var chart = new CanvasJS.Chart("chartContainer", {
+          	animationEnabled: true,
+          	theme: "light2",
+          	title:{
+          		text: "Twitter Sentiment Trend for " + company
+          	},
+          	axisY:{
+              title: "Sentiment Score",
+          		includeZero: false,
+          	},
+          	data: [{
+          		type: type,
+          		dataPoints: arr
+          	}]
+          });
+          chart.render();
+
+        });
+      });
+    </script>
+
+
+    <script src="https://canvasjs.com/assets/script/canvasjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+  </body>
+
+
+</html>
